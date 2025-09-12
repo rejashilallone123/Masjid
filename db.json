@@ -1,0 +1,49 @@
+{
+  "users": [
+    {
+      "userId": "4tydnefhvn",
+      "name": "Admin",
+      "pin": "4tydnefhvn",
+      "role": "admin",
+      "dues": {
+        "molvi": 0,
+        "hamam": 0,
+        "tammiri": 0,
+        "eidi": 0
+      },
+      "paid": 0,
+      "history": [],
+      "id": "d313"
+    },
+    {
+      "userId": "100",
+      "name": "Test User",
+      "pin": "100",
+      "role": "user",
+      "dues": {
+        "molvi": 0,
+        "hamam": 0,
+        "tammiri": 0,
+        "eidi": 0
+      },
+      "paid": 0,
+      "history": [],
+      "id": "4c1d"
+    },
+    {
+      "id": "4bc0",
+      "name": "newww",
+      "userId": "1000",
+      "pin": "0000",
+      "role": "user",
+      "dues": {
+        "molvi": 7,
+        "hamam": 9,
+        "tammiri": 9,
+        "eidi": 8
+      },
+      "paid": 0,
+      "history": []
+    }
+  ]
+}

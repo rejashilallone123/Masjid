@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html
+  lang="en"
+>
+<head>
+  <meta
+    charset="utf-8"
+  />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+  <title>
+    Jamia Masjid Sultanpora — Amount Due Portal
+  </title>
+
+  <style>
+    /* =========================
+       Base / Reset
+    ==========================*/
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Ubuntu, Arial, sans-serif;
+      color: #ffffff;
+      overflow: hidden; /* hides background overflow during animations */
+      background:
+        radial-gradient(
+          1200px 800px
+          at 50% 20%,
+          #0e1530 0%,
+          #090f25 40%,
+          #050914 70%,
+          #02050c 100%
+        );
+    }
+
+    /* =========================
+       Animated ambient cone (subtle)
+    ==========================*/
+    body::before {
+      content: '';
+      position: fixed;
+      inset: -50%;
+      background:
+        conic-gradient(
+          from 0deg,
+          rgba(0,245,255,.35),
+          rgba(255,0,255,.25),
+          rgba(255,0,102,.25),
+          rgba(0,255,153,.25),
+          rgba(0,245,255,.35)
+        );
+      filter: blur(120px);
+      animation: spin 30s linear infinite;
+      opacity: .12;
+      z-index: -3;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* =========================
+       Floating particles (background)
+    ==========================*/
+    .particles {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.6);
+      animation: float 18s linear infinite;
+      filter: drop-shadow(0 0 6px rgba(255,255,255,.6));
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(100vh) scale(.5); opacity: 0; }
+      15%  { opacity: 1; }
+      85%  { opacity: 1; }
+      100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    }
+
+    /* =========================
+       Center Stage Wrapper
+    ==========================*/
+    .stage {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+
+    /* =========================
+       Loader Ring (expands into portal card)
+    ==========================*/
+    .loader-wrap {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      display: grid;
+      place-items: center;
+    }
+
+    .loader-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 8px solid transparent;
+      border-top-color: #00f5ff;
+      border-right-color: #ff00ff;
+      animation:
+        ring-spin 1.4s linear infinite,
+        ring-glow 2s ease-in-out infinite;
+      box-shadow:
+        0 0 12px #00f5ff,
+        0 0 18px #ff00ff inset;
+    }
+
+    .loader-core {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background:
+        radial-gradient(
+          circle at 30% 30%,
+          #a0ffff,
+          #00a2ff 55%,
+          #001a2e 70%
+        );
+      box-shadow:
+        0 0 18px #00eaff,
+        0 0 30px #00a2ff;
+      animation: core-pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes ring-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes ring-glow {
+      0%,
+      100% { box-shadow: 0 0 10px #00f5ff, 0 0 16px #ff00ff inset; }
+      50%   { box-shadow: 0 0 28px #ff00ff, 0 0 36px #00f5ff inset; }
+    }
+
+    @keyframes core-pulse {
+      0%,
+      100% { transform: scale(1);    filter: drop-shadow(0 0 10px #00f5ff); }
+      50%   { transform: scale(1.15); filter: drop-shadow(0 0 18px #00f5ff); }
+    }
+
+    /* =========================
+       Ring → expands to card
+    ==========================*/
+    .expand {
+      animation: expandToCard .9s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+
+    @keyframes expandToCard {
+      0%   { transform: scale(1);  opacity: 1;   }
+      60%  { transform: scale(6);  opacity: .9;  }
+      100% { transform: scale(14); opacity: 0;   }
+    }
+
+    /* =========================
+       Portal Card (login + dashboards)
+    ==========================*/
+    .card {
+      width: min(880px, 96vw);
+      background: rgba(10,16,36,.65);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      box-shadow:
+        0 10px 40px rgba(0,0,0,.45),
+        inset 0 0 0 1px rgba(255,255,255,.06);
+      backdrop-filter: blur(16px);
+      padding: clamp(16px, 3vw, 28px);
+      display: none; /* revealed after loader */
+      animation: portalIn 1s ease-out forwards;
+    }
+
+    @keyframes portalIn {
+      from {
+        transform: scale(.85);
+        opacity: 0;
+        filter: blur(24px);
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+        filter: blur(0);
+      }
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(140% 140% at -10% -10%, #00f5ff55, transparent 60%),
+        radial-gradient(140% 140% at 120% 120%, #ff00ff33, transparent 60%),
+        linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      box-shadow:
+        0 8px 28px rgba(0,0,0,.5),
+        inset 0 0 0 1px rgba(255,255,255,.12);
+      font-size: 26px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: clamp(20px, 3.2vw, 28px);
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+
+    .title small {
+      color: #c7d2fe;
+      opacity: .9;
+    }
+
+    /* =========================
+       Tabs
+    ==========================*/
+    .tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 10px 0 14px;
+    }
+
+    .tab {
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      border: 1px solid #00e1ff;
+      cursor: pointer;
+      user-select: none;
+      background: linear-gradient(90deg, #ff2e63, #00e1ff);
+      color: #0b0f1f;
+      transition: .2s;
+    }
+
+    .tab:not(.active) {
+      background: linear-gradient(90deg, #203a43, #0f2027);
+      color: #e5e7eb;
+      border-color: #2dd4d7;
+    }
+
+    .tab:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0,225,255,.25);
+    }
+
+    .tab.active {
+      box-shadow:
+        inset 0 0 0 2px #061222,
+        0 8px 24px rgba(0,225,255,.25);
+    }
+
+    /* =========================
+       Grid helpers
+    ==========================*/
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    @media (min-width: 900px) {
+      .grid.two {
+        grid-template-columns: 1.1fr .9fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .muted {
+      background:
+        linear-gradient(
+          180deg,
+          rgba(255,255,255,.06),
+          rgba(255,255,255,.02)
+        );
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 14px;
+      border-radius: 16px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+
+    /* =========================
+       Inputs & buttons
+    ==========================*/
+    label {
+      display: block;
+      font-size: 13px;
+      color: #9fb7ff;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #0a1228;
+      color: #ffffff;
+      border: 1px solid #00e1ff66;
+      outline: none;
+      font-size: 15px;
+      transition: .2s;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #ff2e63;
+      box-shadow: 0 0 0 4px #00e1ff22;
+    }
+
+    .row {
+      display: grid;
+      gap: 12px;
+    }
+
+    @media (min-width: 640px) {
+      .row.two   { grid-template-columns: 1fr 1fr; }
+      .row.three { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    button,
+    .btn {
+      background: linear-gradient(90deg, #ff2e63, #00e1ff);
+      color: #0b0f1f;
+      border: none;
+      padding: 11px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 800;
+      letter-spacing: .02em;
+      box-shadow: 0 10px 28px rgba(0,225,255,.25);
+      transition: .15s;
+      font-size: 15px;
+    }
+
+    button:hover,
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 32px rgba(0,225,255,.35);
+    }
+
+    button.secondary {
+      background: linear-gradient(90deg, #22c55e, #06b6d4);
+      color: #03101a;
+    }
+
+    button.warn {
+      background: linear-gradient(90deg, #f59e0b, #ef4444);
+      color: #130a06;
+    }
+
+    button.ghost {
+      background: #0a1228;
+      color: #e5e7eb;
+      border: 1px solid #2dd4d7;
+    }
+
+    .right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .copy {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #9fb7ff;
+      font-size: 13px;
+    }
+
+    /* =========================
+       Stat pills
+    ==========================*/
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+
+    .paid {
+      background: #22c55e;
+      color: #04120a;
+    }
+
+    .due {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+    .partial {
+      background: #f59e0b;
+      color: #1a0d03;
+    }
+
+    /* =========================
+       Tables
+    ==========================*/
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 14px;
+      background: rgba(255,255,255,.02);
+      font-size: 14px;
+    }
+
+    thead th {
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #9fb7ff;
+      text-align: left;
+      padding: 10px 8px;
+      background: rgba(255,255,255,.06);
+    }
+
+    tbody td {
+      padding: 10px 8px;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+
+    @media (max-width: 640px) {
+      table,
+      thead,
+      tbody,
+      th,
+      td,
+      tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tbody td {
+        border: none;
+        padding: 10px 6px;
+        position: relative;
+      }
+
+      tbody td:before {
+        content: attr(data-label);
+        font-weight: 800;
+        color: #9fb7ff;
+        display: block;
+        margin-bottom: 2px;
+      }
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,.12);
+      margin: 12px 0;
+    }
+
+    /* =========================
+       Progress bar
+    ==========================*/
+    .bar {
+      height: 10px;
+      background: #0a1228;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.15);
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e, #06b6d4);
+      width: 0%;
+      transition: width .4s ease;
+    }
+
+    .footer {
+      color: #9fb7ff;
+      font-size: 12px;
+      margin-top: 12px;
+    }
+
+    .hide {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================
+       Particles
+  ==========================-->
+  <div
+    class="particles"
+  >
+    <div
+      class="particle"
+      style="left:7%;animation-delay:0s"
+    ></div>
+    <div
+      class="particle"
+      style="left:24%;animation-delay:2s"
+    ></div>
+    <div
+      class="particle"
+      style="left:39%;animation-delay:4s"
+    ></div>
+    <div
+      class="particle"
+      style="left:58%;animation-delay:1s"
+    ></div>
+    <div
+      class="particle"
+      style="left:76%;animation-delay:3s"
+    ></div>
+    <div
+      class="particle"
+      style="left:91%;animation-delay:5s"
+    ></div>
+  </div>
+
+  <!-- =========================
+       Center Stage
+  ==========================-->
+  <div
+    class="stage"
+  >
+    <!-- Loader that expands -->
+    <div
+      id="loaderWrap"
+      class="loader-wrap"
+    >
+      <div
+        id="loaderRing"
+        class="loader-ring"
+      ></div>
+      <div
+        class="loader-core"
+      ></div>
+    </div>
+
+    <!-- Portal Card -->
+    <div
+      id="appCard"
+      class="card"
+    >
+      <!-- Header -->
+      <div
+        class="brand"
+      >
+        <div
+          class="logo"
+          aria-hidden="true"
+        >
+          🕌
+        </div>
+
+        <div
+          class="title"
+        >
+          <h1>
+            Jamia Masjid Sultanpora
+          </h1>
+          <small>
+            Amount Due Portal
+          </small>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div
+        class="tabs"
+      >
+        <div
+          id="tabUser"
+          class="tab active"
+          role="button"
+          aria-controls="userLogin"
+          aria-selected="true"
+        >
+          👤 User
+        </div>
+
+        <div
+          id="tabAdmin"
+          class="tab"
+          role="button"
+          aria-controls="adminLogin"
+          aria-selected="false"
+        >
+          🛡️ Admin
+        </div>
+      </div>
+
+      <!-- =========================
+           USER / ADMIN LOGIN
+      ==========================-->
+      <section
+        id="authSection"
+        aria-live="polite"
+      >
+        <!-- User Login -->
+        <div
+          id="userLogin"
+        >
+          <div
+            class="muted"
+          >
+            <h3
+              style="margin:0 0 8px"
+            >
+              User Login
+            </h3>
+
+            <p
+              class="footer"
+            >
+              Use your
+              <b>
+                User ID
+              </b>
+              and
+              <b>
+                PIN
+              </b>.
+            </p>
+
+            <div
+              class="row two"
+            >
+              <div>
+                <label
+                  for="userId"
+                >
+                  User ID
+                </label>
+
+                <input
+                  id="userId"
+                  maxlength="10"
+                  placeholder="e.g. 7001234567"
+                  autocomplete="username"
+                  inputmode="numeric"
+                />
+              </div>
+
+              <div>
+                <label
+                  for="userPin"
+                >
+                  PIN
+                </label>
+
+                <input
+                  id="userPin"
+                  type="password"
+                  placeholder="e.g. 1234"
+                  autocomplete="current-password"
+                  inputmode="numeric"
+                />
+              </div>
+            </div>
+
+            <div
+              class="right"
+              style="margin-top:8px"
+            >
+              <label
+                style="display:flex;align-items:center;gap:8px;color:#9fb7ff;font-size:13px"
+              >
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                />
+                Remember me
+              </label>
+
+              <button
+                id="btnLogin"
+              >
+                Login
+              </button>
+            </div>
+
+            <div
+              id="authMsg"
+              class="footer"
+              style="margin-top:8px"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Admin Login -->
+        <div
+          id="adminLogin"
+          class="hide"
+        >
+          <div
+            class="muted"
+          >
+            <h3
+              style="margin:0 0 8px"
+            >
+              Admin Login
+            </h3>
+
+            <p
+              class="footer"
+            >
+              Admins can add/edit users and dues.
+              <span
+                class="pill"
+                style="background:#06b6d4;color:#071317"
+              >
+                Local-only
+              </span>
+            </p>
+
+            <div
+              class="row two"
+            >
+              <div>
+                <label
+                  for="adminUser"
+                >
+                  Admin Username
+                </label>
+
+                <input
+                  id="adminUser"
+                  placeholder="Admin ID"
+                  autocomplete="username"
+                />
+              </div>
+
+              <div>
+                <label
+                  for="adminPass"
+                >
+                  Admin Password
+                </label>
+
+                <input
+                  id="adminPass"
+                  type="password"
+                  placeholder="Password"
+                  autocomplete="current-password"
+                />
+              </div>
+            </div>
+
+            <div
+              class="right"
+              style="margin-top:8px"
+            >
+              <button
+                id="btnAdminLogin"
+              >
+                Login as Admin
+              </button>
+            </div>
+
+            <div
+              id="adminAuthMsg"
+              class="footer"
+              style="margin-top:8px"
+            ></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================
+           USER DASHBOARD
+      ==========================-->
+      <section
+        id="userDash"
+        class="hide"
+      >
+        <div
+          class="grid two"
+        >
+          <div
+            class="muted"
+          >
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"
+            >
+              <div>
+                <h3
+                  style="margin:0"
+                >
+                  Welcome,
+                  <span
+                    id="uName"
+                  ></span>
+                </h3>
+
+                <div
+                  class="copy"
+                >
+                  User ID:
+                  <span
+                    id="uId"
+                  ></span>
+                </div>
+              </div>
+
+              <div
+                class="right"
+              >
+                <button
+                  id="btnUserLogout"
+                  class="warn"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="divider"
+            ></div>
+
+            <div
+              class="row two"
+            >
+              <div
+                class="muted"
+              >
+                <div
+                  class="copy"
+                >
+                  Total Due
+                </div>
+
+                <h2
+                  style="margin:.25em 0 0"
+                >
+                  ₹
+                  <span
+                    id="totalDue"
+                  ></span>
+                </h2>
+              </div>
+
+              <div
+                class="muted"
+              >
+                <div
+                  class="copy"
+                >
+                  Total Paid
+                </div>
+
+                <h2
+                  style="margin:.25em 0 0"
+                >
+                  ₹
+                  <span
+                    id="totalPaid"
+                  ></span>
+                </h2>
+              </div>
+            </div>
+
+            <div
+              class="row"
+            >
+              <div
+                class="bar"
+              >
+                <span
+                  id="paidBar"
+                ></span>
+              </div>
+
+              <div
+                class="footer"
+              >
+                <span
+                  id="pendingCopy"
+                ></span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="muted"
+          >
+            <div
+              class="copy"
+            >
+              Breakdown by Banch
+            </div>
+
+            <div
+              class="row two"
+            >
+              <div
+                class="muted"
+              >
+                <div
+                  class="copy"
+                >
+                  Molvi Banch
+                </div>
+
+                <h3
+                  style="margin:.25em 0 0"
+                >
+                  ₹
+                  <span
+                    id="bMolvi"
+                  ></span>
+                </h3>
+              </div>
+
+              <div
+                class="muted"
+              >
+                <div
+                  class="copy"
+                >
+                  Hamam Banch
+                </div>
+
+                <h3
+                  style="margin:.25em 0 0"
+                >
+                  ₹
+                  <span
+                    id="bHamam"
+                  ></span>
+                </h3>
+              </div>
+
+              <div
+                class="muted"
+              >
+                <div
+                  class="copy"
+                >
+                  Tammiri Banch
+                </div>
+
+                <h3
+                  style="margin:.25em 0 0"
+                >
+                  ₹
+                  <span
+                    id="bTammiri"
+                  ></span>
+                </h3>
+              </div>
+
+              <div
+                class="muted"
+              >
+                <div
+                  class="copy"
+                >
+                  Eidi Banch
+                </div>
+
+                <h3
+                  style="margin:.25em 0 0"
+                >
+                  ₹
+                  <span
+                    id="bEidi"
+                  ></span>
+                </h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="muted"
+        >
+          <h3
+            style="margin:0 0 8px"
+          >
+            Notes / History
+          </h3>
+
+          <table
+            aria-describedby="User payment history"
+          >
+            <thead>
+              <tr>
+                <th>
+                  Date
+                </th>
+                <th>
+                  Note
+                </th>
+                <th>
+                  Paid (₹)
+                </th>
+              </tr>
+            </thead>
+
+            <tbody
+              id="uHist"
+            ></tbody>
+          </table>
+
+          <div
+            class="footer"
+          >
+            Contact management for any corrections.
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================
+           ADMIN DASHBOARD
+      ==========================-->
+      <section
+        id="adminDash"
+        class="hide"
+      >
+        <div
+          class="muted"
+        >
+          <div
+            style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"
+          >
+            <h3
+              style="margin:0"
+            >
+              Admin Panel
+            </h3>
+
+            <div
+              class="right"
+            >
+              <button
+                id="btnAdminLogout"
+                class="warn"
+                title="Logout admin"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="divider"
+          ></div>
+
+          <div
+            class="right"
+            style="justify-content:space-between"
+          >
+            <input
+              id="adminSearch"
+              placeholder="Search name / id"
+              style="max-width:260px"
+              aria-label="Search users by name or user id"
+            />
+
+            <button
+              id="btnAddUser"
+              title="Create new user"
+            >
+              Add User
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="muted"
+        >
+          <table
+            aria-describedby="Admin user table"
+          >
+            <thead>
+              <tr>
+                <th>
+                  Name
+                </th>
+                <th>
+                  User ID
+                </th>
+                <th>
+                  PIN
+                </th>
+                <th>
+                  Molvi
+                </th>
+                <th>
+                  Hamam
+                </th>
+                <th>
+                  Tammiri
+                </th>
+                <th>
+                  Eidi
+                </th>
+                <th>
+                  Paid
+                </th>
+                <th>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+
+            <tbody
+              id="adminUsers"
+            ></tbody>
+          </table>
+
+          <div
+            class="footer"
+          >
+            Click Edit to modify a user; data is stored locally in your browser only.
+          </div>
+        </div>
+
+        <div
+          id="adminEditor"
+          class="muted hide"
+        >
+          <h3
+            id="editorTitle"
+            style="margin:0 0 8px"
+          >
+            Edit User
+          </h3>
+
+          <div
+            class="row two"
+          >
+            <div>
+              <label>
+                Name
+              </label>
+
+              <input
+                id="editName"
+              />
+            </div>
+
+            <div>
+              <label>
+                User ID
+              </label>
+
+              <input
+                id="editId"
+                maxlength="10"
+              />
+            </div>
+          </div>
+
+          <div
+            class="row two"
+          >
+            <div>
+              <label>
+                PIN
+              </label>
+
+              <input
+                id="editPin"
+              />
+            </div>
+
+            <div>
+              <label>
+                Role
+              </label>
+
+              <select
+                id="editRole"
+              >
+                <option
+                  value="user"
+                >
+                  User
+                </option>
+
+                <option
+                  value="admin"
+                >
+                  Admin
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div
+            class="row two"
+          >
+            <div>
+              <label>
+                Molvi Banch (₹)
+              </label>
+
+              <input
+                id="editMolvi"
+                type="number"
+                min="0"
+                step="1"
+              />
+            </div>
+
+            <div>
+              <label>
+                Hamam Banch (₹)
+              </label>
+
+              <input
+                id="editHamam"
+                type="number"
+                min="0"
+                step="1"
+              />
+            </div>
+          </div>
+
+          <div
+            class="row two"
+          >
+            <div>
+              <label>
+                Tammiri Banch (₹)
+              </label>
+
+              <input
+                id="editTammiri"
+                type="number"
+                min="0"
+                step="1"
+              />
+            </div>
+
+            <div>
+              <label>
+                Eidi Banch (₹)
+              </label>
+
+              <input
+                id="editEidi"
+                type="number"
+                min="0"
+                step="1"
+              />
+            </div>
+          </div>
+
+          <div
+            class="row two"
+          >
+            <div>
+              <label>
+                Total Paid (₹)
+              </label>
+
+              <input
+                id="editPaid"
+                type="number"
+                min="0"
+                step="1"
+              />
+            </div>
+
+            <div
+              class="right"
+              style="align-items:end"
+            >
+              <button
+                id="btnSaveUser"
+                class="secondary"
+              >
+                Save
+              </button>
+
+              <button
+                id="btnDeleteUser"
+                class="warn"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="divider"
+          ></div>
+
+          <h4
+            style="margin:0 0 6px"
+          >
+            History / Notes
+          </h4>
+
+          <div
+            class="row two"
+          >
+            <div>
+              <label>
+                Date (YYYY-MM-DD)
+              </label>
+
+              <input
+                id="histDate"
+                placeholder="2025-08-05"
+              />
+            </div>
+
+            <div>
+              <label>
+                Paid (₹)
+              </label>
+
+              <input
+                id="histPaid"
+                type="number"
+                min="0"
+                step="1"
+              />
+            </div>
+          </div>
+
+          <div
+            class="row"
+          >
+            <div>
+              <label>
+                Note
+              </label>
+
+              <textarea
+                id="histNote"
+                rows="2"
+                placeholder="UPI / Cash / NEFT / remarks"
+              ></textarea>
+            </div>
+          </div>
+
+          <div
+            class="right"
+          >
+            <button
+              id="btnAddHist"
+              class="btn"
+            >
+              Add History Row
+            </button>
+          </div>
+
+          <div
+            class="divider"
+          ></div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  Date
+                </th>
+                <th>
+                  Note
+                </th>
+                <th>
+                  Paid (₹)
+                </th>
+                <th>
+                  Del
+                </th>
+              </tr>
+            </thead>
+
+            <tbody
+              id="histTable"
+            ></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div
+        class="footer"
+      >
+        ©
+        <span
+          id="year"
+        ></span>
+        Jamia Masjid Sultanpora • Private local portal
+      </div>
+    </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="addUserModal" class="muted hide" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5)">
+    <div style="background:#101a2e;padding:24px;border-radius:16px;min-width:320px;max-width:90vw;">
+      <h3 style="margin-top:0">Add New User</h3>
+      <div class="row two">
+        <div>
+          <label>Name</label>
+          <input id="username" />
+        </div>
+        <div>
+          <label>User ID</label>
+          <input id="userphone" maxlength="10" />
+        </div>
+      </div>
+      <div class="row two">
+        <div>
+          <label>Molvi Banch (₹)</label>
+          <input id="duesMolvi" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Hamam Banch (₹)</label>
+          <input id="duesHamam" type="number" min="0" step="1" />
+        </div>
+      </div>
+      <div class="row two">
+        <div>
+          <label>Tammiri Banch (₹)</label>
+          <input id="duesTammiri" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Eidi Banch (₹)</label>
+          <input id="duesEidi" type="number" min="0" step="1" />
+        </div>
+      </div>
+      <div class="right" style="margin-top:12px">
+        <button id="btnModalAddUser" class="secondary">Add User</button>
+        <button id="btnModalCancel" class="ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // --- Utilities ---
+  const $  = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+  const LOGIN_KEY = 'sultanpora_login_v3';
+  const formatINR = (n) => (Number(n) || 0).toLocaleString('en-IN');
+  let DB = { users: [] };
+
+  // --- Loader Animation ---
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      $('#loaderRing').classList.add('expand');
+      setTimeout(() => {
+        $('#loaderWrap').style.display = 'none';
+        $('#appCard').style.display    = 'block';
+        loadUsers();
+      }, 900);
+    }, 700);
+
+    // Remembered login
+    const saved = JSON.parse(localStorage.getItem(LOGIN_KEY) || 'null');
+    if (saved) {
+      $('#userId').value        = saved.id  || '';
+      $('#userPin').value       = saved.pin || '';
+      $('#rememberMe').checked  = true;
+    }
+    if ($('#year')) $('#year').textContent = new Date().getFullYear();
+  });
+
+  // --- Tabs ---
+  function showTab(which) {
+    const isUser  = which === 'user';
+    const isAdmin = which === 'admin';
+    $('#tabUser').classList.toggle('active', isUser);
+    $('#tabAdmin').classList.toggle('active', isAdmin);
+    $('#userLogin').classList.toggle('hide', !isUser);
+    $('#adminLogin').classList.toggle('hide', !isAdmin);
+  }
+  $('#tabUser')?.addEventListener('click',  () => showTab('user'));
+  $('#tabAdmin')?.addEventListener('click', () => showTab('admin'));
+
+  // --- Backend API ---
+  async function loadUsers() {
+    const res = await fetch("http://localhost:3000/users");
+    DB.users = await res.json();
+    renderAdminTable();
+  }
+  function byUserId(id) {
+    return (DB.users || []).find(u => String(u.userId) === String(id));
+  }
+
+  // --- User Dashboard ---
+  let currentUser = null;
+  function computeTotals(u) {
+    const d = u.dues || { molvi: 0, hamam: 0, tammiri: 0, eidi: 0 };
+    const total = (d.molvi || 0) + (d.hamam || 0) + (d.tammiri || 0) + (d.eidi || 0);
+    const paid = Number(u.paid || 0);
+    const pending = Math.max(0, total - paid);
+    return { total, paid, pending };
+  }
+  function renderUserDash() {
+    if (!currentUser) return;
+    $('#uName').textContent = currentUser.name;
+    $('#uId').textContent   = currentUser.userId;
+    const d = currentUser.dues || {};
+    $('#bMolvi').textContent   = formatINR(d.molvi   || 0);
+    $('#bHamam').textContent   = formatINR(d.hamam   || 0);
+    $('#bTammiri').textContent = formatINR(d.tammiri || 0);
+    $('#bEidi').textContent    = formatINR(d.eidi    || 0);
+    const { total, paid, pending } = computeTotals(currentUser);
+    $('#totalDue').textContent  = formatINR(total);
+    $('#totalPaid').textContent = formatINR(paid);
+    $('#pendingCopy').textContent = `Pending: ₹${formatINR(pending)} of ₹${formatINR(total)}`;
+    const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+    $('#paidBar').style.width = pct + '%';
+    // history
+    const tb = $('#uHist');
+    tb.innerHTML = '';
+    (currentUser.history || []).slice().reverse().forEach(h => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="Date">${h.date || '-'}</td>
+        <td data-label="Note">${h.note || '-'}</td>
+        <td data-label="Paid (₹)">₹${formatINR(h.paid || 0)}</td>
+      `;
+      tb.appendChild(tr);
+    });
+  }
+  function userLogin() {
+    const id  = $('#userId').value.trim();
+    const pin = $('#userPin').value.trim();
+    if (!id || !pin) {
+      $('#authMsg').textContent = 'Please enter User ID and PIN.'; return;
+    }
+    const u = byUserId(id);
+    if (!u || (u.role || 'user') !== 'user') {
+      $('#authMsg').textContent = 'User not found.'; return;
+    }
+    if (String(u.pin) !== String(pin)) {
+      $('#authMsg').textContent = 'Incorrect PIN.'; return;
+    }
+    $('#authMsg').textContent = 'Login successful.';
+    if ($('#rememberMe').checked) {
+      localStorage.setItem(LOGIN_KEY, JSON.stringify({ id, pin }));
+    } else {
+      localStorage.removeItem(LOGIN_KEY);
+    }
+    currentUser = u;
+    $('#authSection').classList.add('hide');
+    $('#userDash').classList.remove('hide');
+    $('#adminDash').classList.add('hide');
+    renderUserDash();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  $('#btnLogin')?.addEventListener('click', userLogin);
+  ['#userId', '#userPin'].forEach(sel => {
+    $(sel)?.addEventListener('keydown', e => { if (e.key === 'Enter') userLogin(); });
+  });
+  $('#btnUserLogout')?.addEventListener('click', () => {
+    currentUser = null;
+    $('#userDash').classList.add('hide');
+    $('#authSection').classList.remove('hide');
+  });
+
+  // --- Admin Dashboard ---
+  let adminEditingIndex = -1;
+  function adminLogin() {
+    const uName = $('#adminUser').value.trim();
+    const pass  = $('#adminPass').value.trim();
+    const rec = byUserId(uName);
+    if (!rec || rec.role !== 'admin') {
+      $('#adminAuthMsg').textContent = 'Admin not found.'; return;
+    }
+    if (String(rec.pin) !== String(pass)) {
+      $('#adminAuthMsg').textContent = 'Invalid admin credentials.'; return;
+    }
+    $('#adminAuthMsg').textContent = 'Welcome, Admin.';
+    $('#authSection').classList.add('hide');
+    $('#adminDash').classList.remove('hide');
+    renderAdminTable();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  $('#btnAdminLogin')?.addEventListener('click', adminLogin);
+  $('#btnAdminLogout')?.addEventListener('click', () => {
+    adminEditingIndex = -1;
+    $('#adminDash').classList.add('hide');
+    $('#adminEditor').classList.add('hide');
+    $('#authSection').classList.remove('hide');
+    $('#adminUser').value = '';
+    $('#adminPass').value = '';
+    $('#adminAuthMsg').textContent = '';
+  });
+
+  function renderAdminTable() {
+    const q  = ($('#adminSearch')?.value || '').toLowerCase();
+    const tb = $('#adminUsers');
+    if (!tb) return;
+    tb.innerHTML = '';
+    (DB.users || [])
+      .filter(u => u.role !== 'admin')
+      .filter(u => !q || `${u.name} ${u.userId}`.toLowerCase().includes(q))
+      .forEach((u, idx) => {
+        const d  = u.dues || {};
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td data-label="Name">${u.name}</td>
+          <td data-label="User ID" class="copy">${u.userId}</td>
+          <td data-label="PIN" class="copy">${u.pin}</td>
+          <td data-label="Molvi">₹${formatINR(d.molvi || 0)}</td>
+          <td data-label="Hamam">₹${formatINR(d.hamam || 0)}</td>
+          <td data-label="Tammiri">₹${formatINR(d.tammiri || 0)}</td>
+          <td data-label="Eidi">₹${formatINR(d.eidi || 0)}</td>
+          <td data-label="Paid">₹${formatINR(u.paid  || 0)}</td>
+          <td data-label="Actions">
+            <button data-edit-id="${u.id}" class="secondary">Edit</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
+    $$('button[data-edit-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-edit-id');
+        openEditorById(id);
+      });
+    });
+  }
+  $('#adminSearch')?.addEventListener('input', renderAdminTable);
+
+  function openEditor(index) {
+    $('#adminEditor').classList.remove('hide');
+    adminEditingIndex = index;
+    const u = DB.users[index];
+    $('#editorTitle').textContent = `Edit User — ${u.name}`;
+    $('#editName').value = u.name;
+    $('#editId').value   = u.userId;
+    $('#editPin').value  = u.pin;
+    $('#editRole').value = u.role || 'user';
+    const d = u.dues || {};
+    $('#editMolvi').value   = d.molvi   || 0;
+    $('#editHamam').value   = d.hamam   || 0;
+    $('#editTammiri').value = d.tammiri || 0;
+    $('#editEidi').value    = d.eidi    || 0;
+    $('#editPaid').value = u.paid || 0;
+    // history table
+    const hb = $('#histTable');
+    hb.innerHTML = '';
+    (u.history || []).forEach((h, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="Date">${h.date || '-'}</td>
+        <td data-label="Note">${h.note || '-'}</td>
+        <td data-label="Paid (₹)">₹${formatINR(h.paid || 0)}</td>
+        <td><button class="warn" data-del="${i}">X</button></td>
+      `;
+      hb.appendChild(tr);
+    });
+    $$('button[data-del]').forEach(b => {
+      b.addEventListener('click', () => {
+        const di = Number(b.getAttribute('data-del'));
+        const u = DB.users[adminEditingIndex];
+        const newHistory = [...(u.history || [])];
+        newHistory.splice(di, 1);
+        const newPaid = newHistory.reduce((sum, h) => sum + (h.paid || 0), 0);
+        fetch(`http://localhost:3000/users/${encodeURIComponent(u.id)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ history: newHistory, paid: newPaid })
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to delete history row");
+          loadUsers();
+          openEditor(adminEditingIndex);
+        })
+        .catch(err => {
+          console.error("Error:", err);
+          alert('Failed to delete history row.');
+        });
+      });
+    });
+  }
+
+  function openEditorById(id) {
+    const idx = DB.users.findIndex(u => u.id === id);
+    if (idx === -1) return;
+    adminEditingIndex = idx;
+    openEditor(idx);
+  }
+
+  function saveUser() {
+    if (adminEditingIndex < 0) return;
+    const u = DB.users[adminEditingIndex];
+    const newId = $('#editId').value.trim();
+    if (!/^\w[\w@.\-+]*$/.test(newId) || newId.length < 4) {
+      alert('User ID must be at least 4 characters (letters/digits/@.+- allowed).'); return;
+    }
+    if (newId !== u.userId && byUserId(newId)) {
+      alert('Another user already uses this User ID.'); return;
+    }
+    const updatedUser = {
+      ...u,
+      name: $('#editName').value.trim() || 'Unnamed',
+      userId: newId,
+      pin: $('#editPin').value.trim() || '0000',
+      role: $('#editRole').value || 'user',
+      dues: {
+        molvi:   Number($('#editMolvi').value   || 0),
+        hamam:   Number($('#editHamam').value   || 0),
+        tammiri: Number($('#editTammiri').value || 0),
+        eidi:    Number($('#editEidi').value    || 0)
+      },
+      paid: Number($('#editPaid').value || 0),
+      history: u.history || []
+    };
+    fetch(`http://localhost:3000/users/${encodeURIComponent(u.id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedUser)
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to update user");
+      alert('Saved.');
+      loadUsers();
+      openEditor(adminEditingIndex);
+    })
+    .catch(err => {
+      console.error("Error:", err);
+      alert('Failed to save user.');
+    });
+  }
+  $('#btnSaveUser')?.addEventListener('click', saveUser);
+
+  function deleteUser() {
+    if (adminEditingIndex < 0) return;
+    const u = DB.users[adminEditingIndex];
+    if (!u || !u.userId) return;
+    if (!confirm(`Delete user "${u.name}"?`)) return;
+    fetch(`http://localhost:3000/users/${encodeURIComponent(u.id)}`, {
+      method: "DELETE"
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to delete user");
+      adminEditingIndex = -1;
+      $('#adminEditor').classList.add('hide');
+      loadUsers();
+      alert('User deleted.');
+    })
+    .catch(err => {
+      console.error("Error:", err);
+      alert('Failed to delete user.');
+    });
+  }
+  $('#btnDeleteUser')?.addEventListener('click', deleteUser);
+
+  // --- Add User Modal ---
+  $('#btnAddUser')?.addEventListener('click', () => {
+    $('#addUserModal').classList.remove('hide');
+  });
+  $('#btnModalCancel')?.addEventListener('click', () => {
+    $('#addUserModal').classList.add('hide');
+  });
+  $('#btnModalAddUser')?.addEventListener('click', () => {
+    const obj = {
+      name: $('#username').value.trim(),
+      userId: $('#userphone').value.trim(),
+      pin: '0000',
+      role: 'user',
+      dues: {
+        molvi:   Number($('#duesMolvi').value)   || 0,
+        hamam:   Number($('#duesHamam').value)   || 0,
+        tammiri: Number($('#duesTammiri').value) || 0,
+        eidi:    Number($('#duesEidi').value)    || 0
+      },
+      paid: 0,
+      history: []
+    };
+    if (!obj.name || !obj.userId) {
+      alert('Name and User ID are required.');
+      return;
+    }
+    fetch("http://localhost:3000/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(obj)
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert("User added successfully!");
+      $('#addUserModal').classList.add('hide');
+      loadUsers();
+    })
+    .catch(err => {
+      console.error("Error:", err);
+      alert("Failed to add user.");
+    });
+  });
+
+  // --- Add History Row ---
+  function addHistoryRow() {
+    if (adminEditingIndex < 0) return;
+    const date = $('#histDate').value.trim();
+    const paid = Number($('#histPaid').value || 0);
+    const note = $('#histNote').value.trim();
+    if (!date) {
+      alert('Please add a date (YYYY-MM-DD).');
+      return;
+    }
+    const u = DB.users[adminEditingIndex];
+    const newHistory = [...(u.history || []), { date, paid, note }];
+    const newPaid = Number(u.paid || 0) + (paid || 0);
+    fetch(`http://localhost:3000/users/${encodeURIComponent(u.id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ history: newHistory, paid: newPaid })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to add history");
+      loadUsers();
+      openEditor(adminEditingIndex);
+      $('#histDate').value = '';
+      $('#histPaid').value = '';
+      $('#histNote').value = '';
+    })
+    .catch(err => {
+      console.error("Error:", err);
+      alert('Failed to add history.');
+    });
+  }
+  $('#btnAddHist')?.addEventListener('click', addHistoryRow);
+  </script>
+</body>
+</html>
