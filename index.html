@@ -1486,7 +1486,29 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+  // FIREBASE + FIRESTORE IMPORTS
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import {
+    getFirestore, collection, getDocs, addDoc, setDoc,
+    updateDoc, deleteDoc, doc
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  // Your Firebase config (you already have it)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCYa2uDpkv11_4GQ5F1bggXlad8HR2z2XU",
+    authDomain: "masjid-portal-7075c.firebaseapp.com",
+    projectId: "masjid-portal-7075c",
+    storageBucket: "masjid-portal-7075c.firebasestorage.app",
+    messagingSenderId: "138208267977",
+    appId: "1:138208267977:web:091109d5b5752b51584718"
+  };
+
+  // Initialize Firebase + Firestore
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const usersCol = collection(db, "users");
+
   // --- Utilities ---
   const $  = (s) => document.querySelector(s);
   const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -1501,7 +1523,7 @@
       setTimeout(() => {
         $('#loaderWrap').style.display = 'none';
         $('#appCard').style.display    = 'block';
-        loadUsers();
+        loadUsers(); // fetch users from Firestore on start
       }, 900);
     }, 700);
 
@@ -1527,12 +1549,68 @@
   $('#tabUser')?.addEventListener('click',  () => showTab('user'));
   $('#tabAdmin')?.addEventListener('click', () => showTab('admin'));
 
-  // --- Backend API ---
+  // --- Firestore Backend API (replaces localhost fetch calls) ---
   async function loadUsers() {
-    const res = await fetch("http://localhost:3000/users");
-    DB.users = await res.json();
-    renderAdminTable();
+    try {
+      const snap = await getDocs(usersCol);
+      // Map Firestore docs into the DB.users array.
+      DB.users = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
+      console.log("Users loaded:", DB.users);
+      renderAdminTable();
+    } catch (err) {
+      console.error("Failed to load users from Firestore:", err);
+      alert('Failed to load users from database. Open console for details.');
+    }
   }
+
+  // Create new user (replaces POST)
+  async function createUserOnServer(obj) {
+    try {
+      const ref = await addDoc(usersCol, obj);
+      // Write the id into the document for consistency (so UI can use u.id)
+      await updateDoc(doc(db, 'users', ref.id), { id: ref.id });
+      await loadUsers();
+      return ref.id;
+    } catch (err) {
+      console.error("Failed to create user:", err);
+      throw err;
+    }
+  }
+
+  // Replace PUT (full set)
+  async function updateUserOnServer(id, updatedUser) {
+    try {
+      await setDoc(doc(db, 'users', id), updatedUser);
+      await loadUsers();
+    } catch (err) {
+      console.error("Failed to update user:", err);
+      throw err;
+    }
+  }
+
+  // Partial update (PATCH)
+  async function patchUserOnServer(id, patchObject) {
+    try {
+      await updateDoc(doc(db, 'users', id), patchObject);
+      await loadUsers();
+    } catch (err) {
+      console.error("Failed to patch user:", err);
+      throw err;
+    }
+  }
+
+  // Delete user
+  async function deleteUserOnServer(id) {
+    try {
+      await deleteDoc(doc(db, 'users', id));
+      await loadUsers();
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+      throw err;
+    }
+  }
+
+  // --- Existing helpers that use DB.users ---
   function byUserId(id) {
     return (DB.users || []).find(u => String(u.userId) === String(id));
   }
@@ -1661,14 +1739,28 @@
           <td data-label="Paid">₹${formatINR(u.paid  || 0)}</td>
           <td data-label="Actions">
             <button data-edit-id="${u.id}" class="secondary">Edit</button>
+            <button data-delete-id="${u.id}" class="ghost" style="margin-left:8px">Delete</button>
           </td>
         `;
         tb.appendChild(tr);
       });
+    // wire edit buttons
     $$('button[data-edit-id]').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-edit-id');
         openEditorById(id);
+      });
+    });
+    $$('button[data-delete-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-delete-id');
+        if (!confirm('Delete this user?')) return;
+        try {
+          await deleteUserOnServer(id);
+          alert('User deleted.');
+        } catch (err) {
+          alert('Failed to delete user.');
+        }
       });
     });
   }
@@ -1702,27 +1794,20 @@
       `;
       hb.appendChild(tr);
     });
+    // wire delete history buttons
     $$('button[data-del]').forEach(b => {
-      b.addEventListener('click', () => {
+      b.addEventListener('click', async () => {
         const di = Number(b.getAttribute('data-del'));
         const u = DB.users[adminEditingIndex];
         const newHistory = [...(u.history || [])];
         newHistory.splice(di, 1);
         const newPaid = newHistory.reduce((sum, h) => sum + (h.paid || 0), 0);
-        fetch(`http://localhost:3000/users/${encodeURIComponent(u.id)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ history: newHistory, paid: newPaid })
-        })
-        .then(res => {
-          if (!res.ok) throw new Error("Failed to delete history row");
-          loadUsers();
+        try {
+          await patchUserOnServer(u.id, { history: newHistory, paid: newPaid });
           openEditor(adminEditingIndex);
-        })
-        .catch(err => {
-          console.error("Error:", err);
+        } catch (err) {
           alert('Failed to delete history row.');
-        });
+        }
       });
     });
   }
@@ -1734,7 +1819,7 @@
     openEditor(idx);
   }
 
-  function saveUser() {
+  async function saveUser() {
     if (adminEditingIndex < 0) return;
     const u = DB.users[adminEditingIndex];
     const newId = $('#editId').value.trim();
@@ -1759,43 +1844,29 @@
       paid: Number($('#editPaid').value || 0),
       history: u.history || []
     };
-    fetch(`http://localhost:3000/users/${encodeURIComponent(u.id)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedUser)
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Failed to update user");
+    try {
+      await updateUserOnServer(u.id, updatedUser);
       alert('Saved.');
-      loadUsers();
       openEditor(adminEditingIndex);
-    })
-    .catch(err => {
-      console.error("Error:", err);
+    } catch (err) {
       alert('Failed to save user.');
-    });
+    }
   }
   $('#btnSaveUser')?.addEventListener('click', saveUser);
 
-  function deleteUser() {
+  async function deleteUser() {
     if (adminEditingIndex < 0) return;
     const u = DB.users[adminEditingIndex];
     if (!u || !u.userId) return;
     if (!confirm(`Delete user "${u.name}"?`)) return;
-    fetch(`http://localhost:3000/users/${encodeURIComponent(u.id)}`, {
-      method: "DELETE"
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Failed to delete user");
+    try {
+      await deleteUserOnServer(u.id);
       adminEditingIndex = -1;
       $('#adminEditor').classList.add('hide');
-      loadUsers();
       alert('User deleted.');
-    })
-    .catch(err => {
-      console.error("Error:", err);
+    } catch (err) {
       alert('Failed to delete user.');
-    });
+    }
   }
   $('#btnDeleteUser')?.addEventListener('click', deleteUser);
 
@@ -1806,7 +1877,7 @@
   $('#btnModalCancel')?.addEventListener('click', () => {
     $('#addUserModal').classList.add('hide');
   });
-  $('#btnModalAddUser')?.addEventListener('click', () => {
+  $('#btnModalAddUser')?.addEventListener('click', async () => {
     const obj = {
       name: $('#username').value.trim(),
       userId: $('#userphone').value.trim(),
@@ -1825,25 +1896,17 @@
       alert('Name and User ID are required.');
       return;
     }
-    fetch("http://localhost:3000/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(obj)
-    })
-    .then(res => res.json())
-    .then(data => {
+    try {
+      await createUserOnServer(obj);
       alert("User added successfully!");
       $('#addUserModal').classList.add('hide');
-      loadUsers();
-    })
-    .catch(err => {
-      console.error("Error:", err);
+    } catch (err) {
       alert("Failed to add user.");
-    });
+    }
   });
 
   // --- Add History Row ---
-  function addHistoryRow() {
+  async function addHistoryRow() {
     if (adminEditingIndex < 0) return;
     const date = $('#histDate').value.trim();
     const paid = Number($('#histPaid').value || 0);
@@ -1855,26 +1918,19 @@
     const u = DB.users[adminEditingIndex];
     const newHistory = [...(u.history || []), { date, paid, note }];
     const newPaid = Number(u.paid || 0) + (paid || 0);
-    fetch(`http://localhost:3000/users/${encodeURIComponent(u.id)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ history: newHistory, paid: newPaid })
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Failed to add history");
-      loadUsers();
+    try {
+      await patchUserOnServer(u.id, { history: newHistory, paid: newPaid });
       openEditor(adminEditingIndex);
       $('#histDate').value = '';
       $('#histPaid').value = '';
       $('#histNote').value = '';
-    })
-    .catch(err => {
-      console.error("Error:", err);
+    } catch (err) {
       alert('Failed to add history.');
-    });
+    }
   }
   $('#btnAddHist')?.addEventListener('click', addHistoryRow);
-  </script>
+</script>
 </body>
 </html>
+
 
