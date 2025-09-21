@@ -29,18 +29,12 @@
 
     body {
       margin: 0;
-      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Ubuntu, Arial, sans-serif;
-      color: #ffffff;
-      overflow: hidden; /* hides background overflow during animations */
-      background:
-        radial-gradient(
-          1200px 800px
-          at 50% 20%,
-          #0e1530 0%,
-          #090f25 40%,
-          #050914 70%,
-          #02050c 100%
-        );
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Ubuntu, Arial, sans-serif;
+  color: #ffffff;
+  overflow-x: hidden; /* allow vertical scroll, only block horizontal */
+  background: linear-gradient(135deg, #ff4d4d, #ff66cc, #6699ff, #33cc99);
+  background-size: 400% 400%;
+  animation: gradientShift 20s ease infinite;
     }
 
     /* =========================
@@ -1932,5 +1926,6 @@
 </script>
 </body>
 </html>
+
 
 
