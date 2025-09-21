@@ -63,74 +63,7 @@
     /* =========================
        Loader Ring (expands into portal card)
     ==========================*/
-    .loader-wrap {
-      position: relative;
-      width: 140px;
-      height: 140px;
-      display: grid;
-      place-items: center;
-    }
-
-    .loader-ring {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      border: 8px solid transparent;
-      border-top-color: #00f5ff;
-      border-right-color: #ff00ff;
-      animation:
-        ring-spin 1.4s linear infinite,
-        ring-glow 2s ease-in-out infinite;
-      box-shadow:
-        0 0 12px #00f5ff,
-        0 0 18px #ff00ff inset;
-    }
-
-    .loader-core {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background:
-        radial-gradient(
-          circle at 30% 30%,
-          #a0ffff,
-          #00a2ff 55%,
-          #001a2e 70%
-        );
-      box-shadow:
-        0 0 18px #00eaff,
-        0 0 30px #00a2ff;
-      animation: core-pulse 1.6s ease-in-out infinite;
-    }
-
-    @keyframes ring-spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    @keyframes ring-glow {
-      0%, 100% { box-shadow: 0 0 10px #00f5ff, 0 0 16px #ff00ff inset; }
-      50%      { box-shadow: 0 0 28px #ff00ff, 0 0 36px #00f5ff inset; }
-    }
-
-    @keyframes core-pulse {
-      0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 10px #00f5ff); }
-      50%      { transform: scale(1.15); filter: drop-shadow(0 0 18px #00f5ff); }
-    }
-
-    /* =========================
-       Ring → expands to card
-    ==========================*/
-    .expand {
-      animation: expandToCard .9s cubic-bezier(.2,.8,.2,1) forwards;
-    }
-
-    @keyframes expandToCard {
-      0%   { transform: scale(1);  opacity: 1;   }
-      60%  { transform: scale(6);  opacity: .9;  }
-      100% { transform: scale(14); opacity: 0;   }
-    }
+ 
 
     /* =========================
        Portal Card (login + dashboards)
@@ -1868,6 +1801,7 @@
 </script>
 </body>
 </html>
+
 
 
 
