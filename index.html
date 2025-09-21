@@ -14,6 +14,12 @@
     Jamia Masjid Sultanpora — Amount Due Portal
   </title>
 
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Jamia Masjid Sultanpora</title>
   <style>
     /* =========================
        Base / Reset
@@ -29,31 +35,19 @@
 
     body {
       margin: 0;
-  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Ubuntu, Arial, sans-serif;
-  color: #ffffff;
-  overflow-x: hidden; /* allow vertical scroll, only block horizontal */
-  background: linear-gradient(135deg, #ff4d4d, #ff66cc, #6699ff, #33cc99);
-  background-size: 400% 400%;
-  animation: gradientShift 20s ease infinite;
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Ubuntu, Arial, sans-serif;
+      color: #ffffff;
+      overflow-x: hidden; /* allow vertical scroll, only block horizontal */
+      background: linear-gradient(135deg, #ff4d4d, #ff66cc, #6699ff, #33cc99);
+      background-size: 400% 400%;
+      animation: gradientShift 20s ease infinite;
     }
 
-    /* =========================
-       Animated ambient cone (subtle)
-    ==========================*/
-    
-
-    /* =========================
-       Floating particles (background)
-    ==========================*/
-   .particles {
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-}
-
-
-
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
 
     /* =========================
        Center Stage Wrapper
@@ -116,15 +110,13 @@
     }
 
     @keyframes ring-glow {
-      0%,
-      100% { box-shadow: 0 0 10px #00f5ff, 0 0 16px #ff00ff inset; }
-      50%   { box-shadow: 0 0 28px #ff00ff, 0 0 36px #00f5ff inset; }
+      0%, 100% { box-shadow: 0 0 10px #00f5ff, 0 0 16px #ff00ff inset; }
+      50%      { box-shadow: 0 0 28px #ff00ff, 0 0 36px #00f5ff inset; }
     }
 
     @keyframes core-pulse {
-      0%,
-      100% { transform: scale(1);    filter: drop-shadow(0 0 10px #00f5ff); }
-      50%   { transform: scale(1.15); filter: drop-shadow(0 0 18px #00f5ff); }
+      0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 10px #00f5ff); }
+      50%      { transform: scale(1.15); filter: drop-shadow(0 0 18px #00f5ff); }
     }
 
     /* =========================
@@ -491,6 +483,20 @@
       display: none !important;
     }
   </style>
+</head>
+<body>
+  <!-- Stage loader -->
+  <div id="loaderWrap" class="loader-wrap">
+    <div id="loaderRing" class="loader-ring"></div>
+    <div class="loader-core"></div>
+  </div>
+
+  <!-- Portal card container -->
+  <div class="card">
+    <!-- your content goes here -->
+  </div>
+</body>
+
 </head>
 
 <body>
@@ -1862,6 +1868,7 @@
 </script>
 </body>
 </html>
+
 
 
 
