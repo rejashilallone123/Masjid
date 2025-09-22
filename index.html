@@ -1,22 +1,6 @@
 <!DOCTYPE html>
-<html
-  lang="en"
->
-<head>
-  <meta
-    charset="utf-8"
-  />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  />
-  <title>
-    Jamia Masjid Sultanpora — Amount Due Portal
-  </title>
-
- <!DOCTYPE html>
 <html lang="en">
-<head>
+<head meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Jamia Masjid Sultanpora</title>
@@ -26,6 +10,24 @@
 ==========================*/
 * {
   box-sizing: border-box;
+}
+.container {
+  width: 95%;
+  max-width: 800px;
+  margin: auto;
+  padding: 10px;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+td, th {
+  padding: 8px;
+  text-align: left;
+  word-wrap: break-word;
 }
 
 html,
@@ -422,6 +424,41 @@ tbody td {
 .hide {
   display: none !important;
 }
+   /* ======================
+   Mobile Responsive Fix
+   ====================== */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px; /* smaller text for mobiles */
+  }
+
+  /* Make buttons full width on phones */
+  button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  /* Cards or sections shrink padding */
+  .card, .login-box, .dashboard {
+    padding: 10px;
+  }
+
+  /* Inputs take full width */
+  input, select {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  /* Tables become scrollable */
+  .table-wrap {
+    overflow-x: auto;
+    display: block;
+  }
+  table {
+    width: 600px; /* fixed min width, so it scrolls on small screens */
+  }
+}
+
 </style>
 
 </head>
@@ -1809,6 +1846,7 @@ tbody td {
 </script>
 </body>
 </html>
+
 
 
 
