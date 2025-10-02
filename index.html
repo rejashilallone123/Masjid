@@ -1400,15 +1400,18 @@ tbody td {
     </div>
   </div>
 
-  <script type="module">
-  // FIREBASE + FIRESTORE IMPORTS
+ <script type="module">
+  // FIREBASE IMPORTS
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import {
     getFirestore, collection, getDocs, addDoc, setDoc,
     updateDoc, deleteDoc, doc
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js"; // ✅ added
 
-  // Your Firebase config (you already have it)
+  // CONFIG
   const firebaseConfig = {
     apiKey: "AIzaSyCYa2uDpkv11_4GQ5F1bggXlad8HR2z2XU",
     authDomain: "masjid-portal-7075c.firebaseapp.com",
@@ -1418,9 +1421,10 @@ tbody td {
     appId: "1:138208267977:web:091109d5b5752b51584718"
   };
 
-  // Initialize Firebase + Firestore
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  // INIT
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);   // ✅ auth instance
   const usersCol = collection(db, "users");
 
   // --- Utilities ---
@@ -1428,7 +1432,10 @@ tbody td {
   const $$ = (s) => Array.from(document.querySelectorAll(s));
   const LOGIN_KEY = 'sultanpora_login_v3';
   const formatINR = (n) => (Number(n) || 0).toLocaleString('en-IN');
+
   let DB = { users: [] };
+  let currentUser  = null;
+  let currentAdmin = null; // ✅ track admin
 
   // --- Loader Animation ---
   window.addEventListener('load', () => {
@@ -1437,11 +1444,10 @@ tbody td {
       setTimeout(() => {
         $('#loaderWrap').style.display = 'none';
         $('#appCard').style.display    = 'block';
-        loadUsers(); // fetch users from Firestore on start
+        loadUsers();
       }, 900);
     }, 700);
 
-    // Remembered login
     const saved = JSON.parse(localStorage.getItem(LOGIN_KEY) || 'null');
     if (saved) {
       $('#userId').value        = saved.id  || '';
@@ -1463,74 +1469,51 @@ tbody td {
   $('#tabUser')?.addEventListener('click',  () => showTab('user'));
   $('#tabAdmin')?.addEventListener('click', () => showTab('admin'));
 
-  // --- Firestore Backend API (replaces localhost fetch calls) ---
+  // --- Firestore API ---
   async function loadUsers() {
     try {
       const snap = await getDocs(usersCol);
-      // Map Firestore docs into the DB.users array.
       DB.users = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
       console.log("Users loaded:", DB.users);
       renderAdminTable();
     } catch (err) {
-      console.error("Failed to load users from Firestore:", err);
-      alert('Failed to load users from database. Open console for details.');
+      console.error("Failed to load users:", err);
+      alert('Failed to load users from database.');
     }
   }
 
-  // Create new user (replaces POST)
   async function createUserOnServer(obj) {
-    try {
-      const ref = await addDoc(usersCol, obj);
-      // Write the id into the document for consistency (so UI can use u.id)
-      await updateDoc(doc(db, 'users', ref.id), { id: ref.id });
-      await loadUsers();
-      return ref.id;
-    } catch (err) {
-      console.error("Failed to create user:", err);
-      throw err;
-    }
+    if (!currentAdmin) throw new Error("Not authorized");
+    const ref = await addDoc(usersCol, obj);
+    await updateDoc(doc(db, 'users', ref.id), { id: ref.id });
+    await loadUsers();
+    return ref.id;
   }
 
-  // Replace PUT (full set)
   async function updateUserOnServer(id, updatedUser) {
-    try {
-      await setDoc(doc(db, 'users', id), updatedUser);
-      await loadUsers();
-    } catch (err) {
-      console.error("Failed to update user:", err);
-      throw err;
-    }
+    if (!currentAdmin) throw new Error("Not authorized");
+    await setDoc(doc(db, 'users', id), updatedUser);
+    await loadUsers();
   }
 
-  // Partial update (PATCH)
   async function patchUserOnServer(id, patchObject) {
-    try {
-      await updateDoc(doc(db, 'users', id), patchObject);
-      await loadUsers();
-    } catch (err) {
-      console.error("Failed to patch user:", err);
-      throw err;
-    }
+    if (!currentAdmin) throw new Error("Not authorized");
+    await updateDoc(doc(db, 'users', id), patchObject);
+    await loadUsers();
   }
 
-  // Delete user
   async function deleteUserOnServer(id) {
-    try {
-      await deleteDoc(doc(db, 'users', id));
-      await loadUsers();
-    } catch (err) {
-      console.error("Failed to delete user:", err);
-      throw err;
-    }
+    if (!currentAdmin) throw new Error("Not authorized");
+    await deleteDoc(doc(db, 'users', id));
+    await loadUsers();
   }
 
-  // --- Existing helpers that use DB.users ---
+  // --- Helpers ---
   function byUserId(id) {
     return (DB.users || []).find(u => String(u.userId) === String(id));
   }
 
   // --- User Dashboard ---
-  let currentUser = null;
   function computeTotals(u) {
     const d = u.dues || { molvi: 0, hamam: 0, tammiri: 0, eidi: 0 };
     const total = (d.molvi || 0) + (d.hamam || 0) + (d.tammiri || 0) + (d.eidi || 0);
@@ -1538,6 +1521,7 @@ tbody td {
     const pending = Math.max(0, total - paid);
     return { total, paid, pending };
   }
+
   function renderUserDash() {
     if (!currentUser) return;
     $('#uName').textContent = currentUser.name;
@@ -1553,7 +1537,7 @@ tbody td {
     $('#pendingCopy').textContent = `Pending: ₹${formatINR(pending)} of ₹${formatINR(total)}`;
     const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
     $('#paidBar').style.width = pct + '%';
-    // history
+
     const tb = $('#uHist');
     tb.innerHTML = '';
     (currentUser.history || []).slice().reverse().forEach(h => {
@@ -1566,6 +1550,7 @@ tbody td {
       tb.appendChild(tr);
     });
   }
+
   function userLogin() {
     const id  = $('#userId').value.trim();
     const pin = $('#userPin').value.trim();
@@ -1604,24 +1589,32 @@ tbody td {
 
   // --- Admin Dashboard ---
   let adminEditingIndex = -1;
-  function adminLogin() {
-    const uName = $('#adminUser').value.trim();
+
+  // ✅ New Firebase Auth Admin Login
+  async function adminLogin() {
+    const email = $('#adminUser').value.trim();
     const pass  = $('#adminPass').value.trim();
-    const rec = byUserId(uName);
-    if (!rec || rec.role !== 'admin') {
-      $('#adminAuthMsg').textContent = 'Admin not found.'; return;
+    if (!email || !pass) {
+      $('#adminAuthMsg').textContent = 'Enter admin email and password.'; return;
     }
-    if (String(rec.pin) !== String(pass)) {
-      $('#adminAuthMsg').textContent = 'Invalid admin credentials.'; return;
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, pass);
+      currentAdmin = cred.user;
+      $('#adminAuthMsg').textContent = 'Welcome, Admin ✅';
+      $('#authSection').classList.add('hide');
+      $('#adminDash').classList.remove('hide');
+      renderAdminTable();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error(err);
+      $('#adminAuthMsg').textContent = 'Invalid admin credentials.';
     }
-    $('#adminAuthMsg').textContent = 'Welcome, Admin.';
-    $('#authSection').classList.add('hide');
-    $('#adminDash').classList.remove('hide');
-    renderAdminTable();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   $('#btnAdminLogin')?.addEventListener('click', adminLogin);
-  $('#btnAdminLogout')?.addEventListener('click', () => {
+
+  async function adminLogout() {
+    await signOut(auth);
+    currentAdmin = null;
     adminEditingIndex = -1;
     $('#adminDash').classList.add('hide');
     $('#adminEditor').classList.add('hide');
@@ -1629,8 +1622,10 @@ tbody td {
     $('#adminUser').value = '';
     $('#adminPass').value = '';
     $('#adminAuthMsg').textContent = '';
-  });
+  }
+  $('#btnAdminLogout')?.addEventListener('click', adminLogout);
 
+  // --- Admin Table + Editing ---
   function renderAdminTable() {
     const q  = ($('#adminSearch')?.value || '').toLowerCase();
     const tb = $('#adminUsers');
@@ -1658,7 +1653,7 @@ tbody td {
         `;
         tb.appendChild(tr);
       });
-    // wire edit buttons
+
     $$('button[data-edit-id]').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-edit-id');
@@ -1694,8 +1689,8 @@ tbody td {
     $('#editHamam').value   = d.hamam   || 0;
     $('#editTammiri').value = d.tammiri || 0;
     $('#editEidi').value    = d.eidi    || 0;
-    $('#editPaid').value = u.paid || 0;
-    // history table
+    $('#editPaid').value    = u.paid || 0;
+
     const hb = $('#histTable');
     hb.innerHTML = '';
     (u.history || []).forEach((h, i) => {
@@ -1708,7 +1703,7 @@ tbody td {
       `;
       hb.appendChild(tr);
     });
-    // wire delete history buttons
+
     $$('button[data-del]').forEach(b => {
       b.addEventListener('click', async () => {
         const di = Number(b.getAttribute('data-del'));
@@ -1738,7 +1733,7 @@ tbody td {
     const u = DB.users[adminEditingIndex];
     const newId = $('#editId').value.trim();
     if (!/^\w[\w@.\-+]*$/.test(newId) || newId.length < 4) {
-      alert('User ID must be at least 4 characters (letters/digits/@.+- allowed).'); return;
+      alert('User ID must be at least 4 characters.'); return;
     }
     if (newId !== u.userId && byUserId(newId)) {
       alert('Another user already uses this User ID.'); return;
@@ -1844,8 +1839,10 @@ tbody td {
   }
   $('#btnAddHist')?.addEventListener('click', addHistoryRow);
 </script>
+
 </body>
 </html>
+
 
 
 
